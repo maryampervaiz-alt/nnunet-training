@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "nnunet-men-rt"
+version = "1.0.0"
+description = "MICCAI-level nnU-Net pipeline for BraTS 2024 MEN-RT meningioma GTV segmentation"
+requires-python = ">=3.10"
+dependencies = [
+    "nnunetv2>=2.4",
+    "torch>=2.1",
+    "numpy>=1.24",
+    "nibabel>=5.0",
+    "SimpleITK>=2.3",
+    "scipy>=1.11",
+    "scikit-image>=0.21",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "mlflow>=2.10",
+    "tqdm>=4.66",
+    "medpy>=0.5",
+    "surface-distance>=0.1",
+    "loguru>=0.7",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "black>=23.0",
+    "ruff>=0.1",
+    "mypy>=1.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

@@ -1,0 +1,61 @@
+# ─── Experiment Configuration ──────────────────────────────────────────────────
+#
+# Controls training, inference, and evaluation behaviour.
+#
+# IMPORTANT: nnU-Net auto-determines all model hyperparameters (learning rate,
+# batch size, patch size, network depth, augmentation pipeline) from the data.
+# Do NOT override these unless submitting an explicit ablation study.
+#
+# All ${VAR} placeholders are resolved from environment variables (.env file).
+
+experiment:
+  name: ${EXPERIMENT_NAME}
+  seed: 42            # also set NNUNET_SEED in .env for subprocess propagation
+
+training:
+  configuration: ${NNUNET_CONFIGURATION}  # 3d_fullres recommended for 3-D MRI
+  num_folds: ${NUM_FOLDS}                 # 5-fold CV (nnU-Net default splits)
+  trainer_class: "nnUNetTrainerEarlyStopping"
+  plans_identifier: "nnUNetPlans"
+
+  # Resume training from an existing checkpoint (--continue flag in 03_train.py)
+  continue_training: false
+
+  # ── Early stopping ──────────────────────────────────────────────────────────
+  # These values are read from environment variables so the trainer subprocess
+  # can access them without importing Python project code.
+  # Override via .env or --es-* CLI flags in 03_train.py.
+  es_patience: 50     # env: ES_PATIENCE  — epochs with no improvement before stop
+  es_min_delta: 0.0001  # env: ES_MIN_DELTA — minimum Dice gain to reset counter
+  es_warmup: 50       # env: ES_WARMUP   — epochs before early stopping is active
+
+inference:
+  # "all" → ensemble all trained folds (higher accuracy, slower)
+  # [0, 1, 2, 3, 4] → select specific folds
+  folds: "all"
+  step_size: 0.5        # sliding-window overlap; higher = more accurate, slower
+  use_gaussian: true    # Gaussian patch weighting (nnU-Net default: on)
+  disable_tta: false    # test-time augmentation; set true for faster inference
+  device: "cuda"        # "cuda" | "cpu"
+  save_probabilities: false   # save softmax maps (large files)
+  overwrite_existing: false
+
+evaluation:
+  # BraTS 2024 MEN-RT official metrics
+  metrics:
+    - dice              # Dice Similarity Coefficient (DSC)
+    - hd95              # 95th-percentile Hausdorff Distance (mm)
+    - nsd               # Normalised Surface Distance at tolerance below
+    - precision         # Positive predictive value
+    - recall            # Sensitivity / true positive rate
+    - specificity       # True negative rate
+    - volume_similarity
+    - abs_volume_error_ml
+  nsd_tolerance_mm: 2.0   # BraTS 2024 official NSD tolerance
+  low_dice_threshold: 0.5 # cases below this Dice are flagged as outliers
+
+visualization:
+  num_slices: 5         # axial slices per overlay figure
+  overlay_alpha: 0.35   # mask transparency
+  dpi: 150              # screen figure DPI (savefig uses 300 dpi)
+  n_overlay_cases: 15   # total cases for overlay plots (best/median/worst split)

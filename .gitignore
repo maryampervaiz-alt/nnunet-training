@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+*.whl
+.venv/
+venv/
+env/
+
+# Env
+.env
+*.env.local
+
+# nnU-Net generated (large)
+nnunet_preprocessed/
+nnunet_raw/imagesTr/
+nnunet_raw/imagesTs/
+nnunet_raw/labelsTr/
+
+# Data
+data/
+
+# Outputs (optionally track results but not heavy inference outputs)
+inference_outputs/
+checkpoints/
+visualizations/
+
+# Logs
+logs/
+*.log
+
+# MLflow
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+!nnunet_kaggle.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage

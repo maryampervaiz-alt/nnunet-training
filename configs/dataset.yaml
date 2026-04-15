@@ -1,0 +1,34 @@
+# ─── Dataset Configuration ────────────────────────────────────────────────────
+# Values here are used by the preparation script to build nnU-Net's dataset.json.
+# Do NOT hardcode patch_size, spacing, or normalization — nnU-Net auto-configures those.
+
+dataset:
+  id: ${DATASET_ID}               # override via env var
+  name: ${DATASET_NAME}           # override via env var
+  description: "BraTS 2024 MEN-RT: Meningioma Gross Tumour Volume (GTV) segmentation from post-Gd T1c MRI"
+  reference: "BraTS 2024 Challenge — https://www.synapse.org/Synapse:syn53708249"
+  licence: "CC-BY-NC-4.0"
+  release: "2024"
+  tensorImageSize: "3D"
+
+  # Modality mapping (keys must match _XXXX suffix used in filenames)
+  channel_names:
+    "0": "T1c"
+
+  # Label mapping
+  labels:
+    background: 0
+    GTV: 1
+
+  # For nnU-Net: regions_class_order is only needed for region-based training
+  # (not used here — standard binary segmentation)
+
+  file_ending: ".nii.gz"
+
+  # Source data directory names (relative to RAW_TRAIN_DIR / RAW_VAL_DIR)
+  train_image_suffix: "-t1c.nii.gz"
+  train_mask_suffix:  "-seg.nii.gz"
+  val_image_suffix:   "-t1c.nii.gz"
+
+  # Minimum foreground ratio to flag degenerate masks (fraction of total voxels)
+  min_foreground_ratio: 1.0e-5

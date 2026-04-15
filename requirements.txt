@@ -1,0 +1,39 @@
+# nnU-Net MEN-RT — Python dependencies
+#
+# Install PyTorch separately first (match your CUDA version):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+# Then install this file:
+#   pip install -r requirements.txt
+
+# ── Core framework ────────────────────────────────────────────────────────────
+nnunetv2>=2.4
+torch>=2.1          # install via PyTorch website for correct CUDA build
+numpy>=1.24,<2.0
+
+# ── Medical imaging I/O ───────────────────────────────────────────────────────
+nibabel>=5.0
+SimpleITK>=2.3
+
+# ── Metric computation ────────────────────────────────────────────────────────
+scipy>=1.11
+scikit-image>=0.21
+medpy>=0.5
+surface-distance>=0.1   # Google's NSD library (BraTS 2024 official metric)
+
+# ── Data & analysis ───────────────────────────────────────────────────────────
+pandas>=2.0
+
+# ── Visualization ─────────────────────────────────────────────────────────────
+matplotlib>=3.8
+seaborn>=0.13
+
+# ── Experiment tracking ───────────────────────────────────────────────────────
+mlflow>=2.10
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0
+pyyaml>=6.0
+tqdm>=4.66
+loguru>=0.7
+rich>=13.0
