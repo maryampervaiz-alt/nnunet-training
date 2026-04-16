@@ -100,6 +100,14 @@ def parse_args() -> argparse.Namespace:
         metavar="NAME=INT",
         help="Label class definitions, e.g. --labels background=0 GTV=1",
     )
+    p.add_argument(
+        "--max-cases",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Limit training conversion to the first N cases (sorted alphabetically). "
+             "Useful for quick subset experiments (e.g. --max-cases 50).",
+    )
     p.add_argument("--log-dir", default="logs", help="Directory for log files")
     return p.parse_args()
 
@@ -160,6 +168,7 @@ def main() -> None:
     log.info(f"  Train source : {train_source}")
     log.info(f"  Val source   : {val_source or '(skipped)'}")
     log.info(f"  Label suffix : _{label_suffix}")
+    log.info(f"  Max cases    : {args.max_cases or 'all'}")
     log.info(f"  Output dir   : {raw_dir / dataset_folder}")
     log.info(f"  Overwrite    : {args.overwrite}")
     log.info("=" * 62)
@@ -173,7 +182,7 @@ def main() -> None:
     )
 
     try:
-        train_cases = converter.convert_training()
+        train_cases = converter.convert_training(max_cases=args.max_cases)
         val_cases = converter.convert_validation()
     finally:
         converter.cleanup()  # remove temp extraction dirs
