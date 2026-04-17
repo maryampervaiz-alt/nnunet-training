@@ -23,6 +23,7 @@ nnunet_raw/labelsTr/
 
 # Data
 data/
+!src/data/
 BraTs MEN-RT/
 
 # Outputs (optionally track results but not heavy inference outputs)

@@ -65,7 +65,7 @@ class SourceLayout:
         (e.g. ``"gtv"`` matches ``*_gtv.nii.gz``).
     """
 
-    _NIFTI_RE = re.compile(r"^(.+?)_([^_]+)\.nii\.gz$", re.IGNORECASE)
+    _NIFTI_RE = re.compile(r"^(.+?)_([^_]+)\.nii(?:\.gz)?$", re.IGNORECASE)
 
     def __init__(self, source: Path, label_suffix: str) -> None:
         self.source = source
@@ -174,11 +174,13 @@ class SourceLayout:
     def _parse_case_dir(self, case_dir: Path) -> dict[str, Path]:
         """Return {suffix: filepath} for all NIfTI files in *case_dir*."""
         file_map: dict[str, Path] = {}
-        for f in case_dir.glob("*.nii.gz"):
-            m = self._NIFTI_RE.match(f.name)
-            if m:
-                suffix = m.group(2).lower()
-                file_map[suffix] = f
+        for pattern in ("*.nii.gz", "*.nii"):
+            for f in case_dir.glob(pattern):
+                m = self._NIFTI_RE.match(f.name)
+                if m:
+                    suffix = m.group(2).lower()
+                    if suffix not in file_map:  # prefer .nii.gz if both exist
+                        file_map[suffix] = f
         return file_map
 
 
