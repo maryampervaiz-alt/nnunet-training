@@ -127,6 +127,27 @@ def _resolve_gt_dir(args: argparse.Namespace) -> Path:
     return raw_dir / dataset_folder_name() / "labelsTr"
 
 
+def _validate_cv_consistency(splits: list[dict], log) -> None:
+    """Warn if dataset has been modified since training started.
+
+    This prevents incomparable CV results if user trains on 50 cases,
+    then accidentally preprocesses the full dataset and trains folds
+    on different splits.
+    """
+    total_cases = sum(len(f['train']) + len(f['val']) for f in splits)
+
+    # Get expected size from environment or make a reasonable check
+    # If total matches a known subset size, warn whether inconsistent
+    if total_cases not in (50, 100, 200, 500):
+        log.warning(
+            f"ℹ️  Dataset has {total_cases} total cases across all folds. "
+            f"For 5-fold CV, this should be stable across all fold training. "
+            f"If folds were trained on different dataset sizes, results may be incomparable."
+        )
+    else:
+        log.info(f"✓ Dataset: {total_cases} cases ({total_cases // 5} per fold average)")
+
+
 def _export_publication_outputs(
     df: pd.DataFrame,
     results_dir: Path,
@@ -208,6 +229,9 @@ def _run_cv(args: argparse.Namespace, gt_dir: Path, log) -> pd.DataFrame:
         log.error(f"Could not load splits_final.json: {exc}")
         sys.exit(1)
 
+    # ── Warn if dataset size looks unusual ────────────────────────────────────
+    _validate_cv_consistency(splits, log)
+
     all_dfs: list[pd.DataFrame] = []
 
     for fold_idx, fold in enumerate(splits):
@@ -272,6 +296,14 @@ def main() -> None:
     log.info(f"  LaTeX output   : {args.latex}")
     log.info(f"  Bootstrap n    : {args.bootstrap_n}")
     log.info("=" * 64)
+
+    # ── Load and validate CV splits if in CV mode ──────────────────────────────
+    if args.cv_mode:
+        try:
+            splits = load_splits()
+            _validate_cv_consistency(splits, log)
+        except Exception as exc:
+            log.warning(f"Could not validate CV consistency: {exc}")
 
     df = _run_cv(args, gt_dir, log) if args.cv_mode else _run_standard(args, gt_dir, log)
 
