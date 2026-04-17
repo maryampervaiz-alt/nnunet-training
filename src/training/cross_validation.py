@@ -66,6 +66,7 @@ class CrossValidationOrchestrator:
         plans_identifier: str = "nnUNetPlans",
         continue_training: bool = False,
         seed: int = 42,
+        num_epochs: int | None = None,
         es_patience: int = 50,
         es_min_delta: float = 1e-4,
         es_warmup: int = 50,
@@ -79,6 +80,7 @@ class CrossValidationOrchestrator:
         self.plans_identifier = plans_identifier
         self.continue_training = continue_training
         self.seed = seed
+        self.num_epochs = num_epochs
         self.es_patience = es_patience
         self.es_min_delta = es_min_delta
         self.es_warmup = es_warmup
@@ -175,6 +177,7 @@ class CrossValidationOrchestrator:
                 plans_identifier=self.plans_identifier,
                 continue_training=self.continue_training,
                 seed=self.seed,
+                num_epochs=self.num_epochs,
                 es_patience=self.es_patience,
                 es_min_delta=self.es_min_delta,
                 es_warmup=self.es_warmup,

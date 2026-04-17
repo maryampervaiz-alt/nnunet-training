@@ -70,6 +70,7 @@ class FoldTrainer:
         plans_identifier: str = "nnUNetPlans",
         continue_training: bool = False,
         seed: int = 42,
+        num_epochs: int | None = None,
         es_patience: int = 50,
         es_min_delta: float = 1e-4,
         es_warmup: int = 50,
@@ -82,6 +83,7 @@ class FoldTrainer:
         self.plans_identifier = plans_identifier
         self.continue_training = continue_training
         self.seed = seed
+        self.num_epochs = num_epochs
         self.es_patience = es_patience
         self.es_min_delta = es_min_delta
         self.es_warmup = es_warmup
@@ -155,6 +157,8 @@ class FoldTrainer:
             "-tr", self.trainer_class,
             "-p", self.plans_identifier,
         ]
+        if self.num_epochs is not None:
+            cmd += ["--num_epochs", str(self.num_epochs)]
         if self.continue_training:
             cmd.append("--c")
         cmd += self.extra_args

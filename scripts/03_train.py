@@ -97,6 +97,14 @@ def parse_args() -> argparse.Namespace:
 
     # ── Training control ──────────────────────────────────────────────────────
     p.add_argument(
+        "--num-epochs",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Number of training epochs (default: nnU-Net auto, 1000). "
+             "Set e.g. --num-epochs 50 for a pilot run.",
+    )
+    p.add_argument(
         "--continue-training",
         action="store_true",
         help="Resume from existing checkpoint (passes --c to nnUNetv2_train)",
@@ -212,6 +220,7 @@ def main() -> None:
     log.info(f"  Plans          : {args.plans}")
     log.info(f"  Num folds      : {num_folds}")
     log.info(f"  Folds selected : {args.folds or list(range(num_folds))}")
+    log.info(f"  Num epochs     : {args.num_epochs or 'nnU-Net default (1000)'}")
     log.info(f"  Continue       : {args.continue_training}")
     log.info(f"  Seed           : {seed}")
     log.info(f"  CUDA devices   : {cuda_dev}")
@@ -233,6 +242,7 @@ def main() -> None:
         plans_identifier=args.plans,
         continue_training=args.continue_training,
         seed=seed,
+        num_epochs=args.num_epochs,
         es_patience=es_patience,
         es_min_delta=es_min_delta,
         es_warmup=es_warmup,
