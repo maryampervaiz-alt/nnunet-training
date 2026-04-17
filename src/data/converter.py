@@ -345,7 +345,13 @@ class BraTSMENRTConverter:
     def _copy(self, src: Path, dst: Path) -> None:
         if dst.exists() and not self.overwrite:
             return
-        shutil.copy2(src, dst)
+        # If source is uncompressed .nii but destination expects .nii.gz, compress it
+        if src.suffix.lower() == '.nii' and dst.name.endswith('.nii.gz'):
+            import gzip
+            with open(src, 'rb') as f_in, gzip.open(dst, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy2(src, dst)
 
     def _validate_label(self, case_id: str, label_path: Path) -> None:
         try:
