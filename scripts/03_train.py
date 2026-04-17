@@ -166,17 +166,14 @@ def _validate_prereqs(log) -> bool:
         )
         return False
 
+    # splits_final.json is created by nnunet on the first training run — not required upfront
     splits_file = preprocessed / "splits_final.json"
-    if not splits_file.exists():
-        log.error(
-            f"splits_final.json not found: {splits_file}\n"
-            "Run scripts/02_preprocess.py first."
-        )
-        return False
-
-    with splits_file.open() as fh:
-        splits = json.load(fh)
-    log.info(f"Found {len(splits)}-fold splits in {splits_file.name}")
+    if splits_file.exists():
+        with splits_file.open() as fh:
+            splits = json.load(fh)
+        log.info(f"Found {len(splits)}-fold splits in {splits_file.name}")
+    else:
+        log.info("splits_final.json not yet present — nnunet will generate it during training.")
     return True
 
 

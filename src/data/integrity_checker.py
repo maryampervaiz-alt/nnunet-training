@@ -271,8 +271,14 @@ class IntegrityChecker:
                     img = nib.load(p)
                     shapes.append(tuple(img.shape[:3]))
                 except Exception as exc:
-                    cr.images_readable = False
-                    cr.errors.append(f"Cannot read {p.name}: {exc}")
+                    # Try SimpleITK as fallback (handles .nii stored as .nii.gz)
+                    try:
+                        import SimpleITK as sitk
+                        sitk_img = sitk.ReadImage(str(p))
+                        shapes.append(sitk_img.GetSize()[::-1][:3])
+                    except Exception:
+                        cr.images_readable = False
+                        cr.errors.append(f"Cannot read {p.name}: {exc}")
 
         if label_path.exists():
             try:
@@ -288,8 +294,19 @@ class IntegrityChecker:
                     cr.label_values_ok = False
                     cr.errors.append(f"Unexpected label values: {unexpected}")
             except Exception as exc:
-                cr.label_readable = False
-                cr.errors.append(f"Cannot read label: {exc}")
+                try:
+                    import SimpleITK as sitk
+                    sitk_lbl = sitk.ReadImage(str(label_path))
+                    arr = sitk.GetArrayFromImage(sitk_lbl).astype(np.int32)
+                    unique_vals = set(np.unique(arr).tolist())
+                    shapes.append(arr.shape[:3])
+                    if not unique_vals.issubset(self.expected_label_values):
+                        unexpected = unique_vals - self.expected_label_values
+                        cr.label_values_ok = False
+                        cr.errors.append(f"Unexpected label values: {unexpected}")
+                except Exception:
+                    cr.label_readable = False
+                    cr.errors.append(f"Cannot read label: {exc}")
 
         if len(set(shapes)) > 1:
             cr.shapes_match = False
