@@ -148,11 +148,28 @@ class SourceLayout:
 
     @staticmethod
     def _resolve_extracted_root(path: Path) -> Path:
-        """Unwrap a single top-level subdirectory if present."""
-        contents = [p for p in path.iterdir() if not p.name.startswith(".")]
-        if len(contents) == 1 and contents[0].is_dir():
-            return contents[0]
-        return path
+        """Iteratively unwrap wrapper directories until case folders are found.
+
+        Keeps descending as long as the current directory has exactly one
+        child that is itself a directory (i.e. a single-item wrapper folder
+        like BraTS2024-MEN-RT-TrainingData/ or BraTS-MEN-RT-Train-v2/).
+        Stops when multiple children or non-directory children are found.
+        """
+        current = path
+        for _ in range(6):  # guard: max 6 levels deep
+            try:
+                contents = [p for p in current.iterdir()
+                            if not p.name.startswith(".") and not p.name.startswith("__")]
+            except PermissionError:
+                break
+            dirs = [p for p in contents if p.is_dir()]
+            # If exactly one child and it is a directory, descend into it
+            if len(contents) == 1 and len(dirs) == 1:
+                current = dirs[0]
+            else:
+                break
+        logger.debug(f"Resolved dataset root: {current}")
+        return current
 
     def _parse_case_dir(self, case_dir: Path) -> dict[str, Path]:
         """Return {suffix: filepath} for all NIfTI files in *case_dir*."""
