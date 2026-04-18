@@ -1,35 +1,4 @@
-"""Custom nnU-Net v2 trainer with early stopping and seed support.
-
-This module defines ``nnUNetTrainerEarlyStopping``, a minimal subclass of
-``nnUNetTrainer`` that adds:
-
-  - **Early stopping** — hooks into ``on_epoch_end`` to monitor validation
-    Dice and short-circuits the training loop when improvement stalls.
-  - **Reproducibility** — reads ``NNUNET_SEED`` from the environment and
-    applies it at init time via :func:`~src.training.reproducibility.set_global_seed`.
-
-No internal nnU-Net configs are overridden (patch size, spacing, batch size,
-augmentations, optimiser, LR schedule are all left to auto-configuration).
-
-Usage
------
-Pass the class name to ``nnUNetv2_train``::
-
-    nnUNetv2_train <DATASET_ID> 3d_fullres 0 -tr nnUNetTrainerEarlyStopping
-
-Or via the :class:`~src.training.trainer.FoldTrainer` ``trainer_class`` parameter.
-
-Environment variables
----------------------
-``NNUNET_SEED``
-    Integer seed applied at trainer init (default: 42).
-``ES_PATIENCE``
-    Epochs without improvement before stopping (default: 50).
-``ES_MIN_DELTA``
-    Minimum Dice improvement to reset patience counter (default: 1e-4).
-``ES_WARMUP``
-    Initial epochs during which early stopping is disabled (default: 50).
-"""
+"""Custom nnU-Net v2 trainer with early stopping and seed support."""
 from __future__ import annotations
 
 import os
@@ -46,26 +15,36 @@ except ImportError:
 
 
 class nnUNetTrainerEarlyStopping(nnUNetTrainer):
-    """nnUNetTrainer subclass with early stopping and seeded reproducibility.
+    """nnUNetTrainer subclass with early stopping and seeded reproducibility."""
 
-    All constructor arguments are forwarded to ``nnUNetTrainer.__init__``;
-    early stopping parameters are read from environment variables so that they
-    can be controlled without touching source code.
-    """
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        unpack_dataset: bool = True,
+        device=None,
+    ) -> None:
+        super().__init__(
+            plans=plans,
+            configuration=configuration,
+            fold=fold,
+            dataset_json=dataset_json,
+            unpack_dataset=unpack_dataset,
+            device=device,
+        )
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        # ── Reproducibility ───────────────────────────────────────────────────
+        # Reproducibility
         seed = int(os.environ.get("NNUNET_SEED", "42"))
         self._apply_seed(seed)
 
-        # ── Early stopping parameters ────────────────────────────────────────
+        # Early stopping parameters
         self._es_patience: int = int(os.environ.get("ES_PATIENCE", "50"))
         self._es_min_delta: float = float(os.environ.get("ES_MIN_DELTA", "1e-4"))
         self._es_warmup: int = int(os.environ.get("ES_WARMUP", "50"))
 
-        # Override num_epochs from env var (nnUNetv2_train has no --num_epochs flag)
+        # Optional epoch override from env
         _num_epochs_env = os.environ.get("NNUNET_NUM_EPOCHS")
         if _num_epochs_env is not None:
             self.num_epochs = int(_num_epochs_env)
@@ -83,8 +62,6 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
             f"warmup={self._es_warmup}"
         )
 
-    # ── Hook: called once per epoch by nnUNetTrainer.run_training() ───────────
-
     def on_epoch_end(self) -> None:
         """Delegate to super, then evaluate early stopping condition."""
         super().on_epoch_end()
@@ -92,11 +69,10 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         if self._es_triggered:
             return
 
-        current_epoch = self.current_epoch  # already incremented by super()
+        current_epoch = self.current_epoch
         if current_epoch < self._es_warmup:
             return
 
-        # Extract latest validation Dice from nnU-Net's internal logger
         dice_log = self.logger.my_fantastic_logging.get("mean_fg_dice", [])
         if not dice_log:
             return
@@ -119,11 +95,7 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
                     f"Best val Dice = {self._es_best_dice:.4f}"
                 )
                 self._es_triggered = True
-                # Short-circuit the training loop: nnU-Net checks
-                # ``self.current_epoch < self.num_epochs`` before each epoch.
                 self.num_epochs = current_epoch
-
-    # ── Seed helper ───────────────────────────────────────────────────────────
 
     @staticmethod
     def _apply_seed(seed: int) -> None:
