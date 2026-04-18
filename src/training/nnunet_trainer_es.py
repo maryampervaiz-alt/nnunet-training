@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import inspect
 
 # Guard: only importable when nnunetv2 is installed (not needed at parse time).
 try:
@@ -9,6 +10,7 @@ try:
     _NNUNET_AVAILABLE = True
 except ImportError:
     _NNUNET_AVAILABLE = False
+
     # Provide a stub so the file can be imported for syntax checking
     class nnUNetTrainer:  # type: ignore[no-redef]
         pass
@@ -26,14 +28,21 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         unpack_dataset: bool = True,
         device=None,
     ) -> None:
-        super().__init__(
-            plans=plans,
-            configuration=configuration,
-            fold=fold,
-            dataset_json=dataset_json,
-            unpack_dataset=unpack_dataset,
-            device=device,
-        )
+        # Make constructor compatible across nnunetv2 versions
+        base_init_params = inspect.signature(nnUNetTrainer.__init__).parameters
+
+        init_kwargs = {
+            "plans": plans,
+            "configuration": configuration,
+            "fold": fold,
+            "dataset_json": dataset_json,
+        }
+        if "unpack_dataset" in base_init_params:
+            init_kwargs["unpack_dataset"] = unpack_dataset
+        if "device" in base_init_params:
+            init_kwargs["device"] = device
+
+        super().__init__(**init_kwargs)
 
         # Reproducibility
         seed = int(os.environ.get("NNUNET_SEED", "42"))
@@ -100,15 +109,18 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
     @staticmethod
     def _apply_seed(seed: int) -> None:
         import random
+
         random.seed(seed)
         os.environ["PYTHONHASHSEED"] = str(seed)
         try:
             import numpy as np
+
             np.random.seed(seed)
         except ImportError:
             pass
         try:
             import torch
+
             torch.manual_seed(seed)
             torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
