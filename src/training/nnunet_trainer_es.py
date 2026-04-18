@@ -2,16 +2,11 @@
 from __future__ import annotations
 
 import os
-import inspect
 
 # Guard: only importable when nnunetv2 is installed (not needed at parse time).
 try:
     from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
-    _NNUNET_AVAILABLE = True
 except ImportError:
-    _NNUNET_AVAILABLE = False
-
-    # Provide a stub so the file can be imported for syntax checking
     class nnUNetTrainer:  # type: ignore[no-redef]
         pass
 
@@ -25,40 +20,28 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         configuration: str,
         fold: int,
         dataset_json: dict,
-        unpack_dataset: bool = True,
         device=None,
     ) -> None:
-        # Make constructor compatible across nnunetv2 versions
-        base_init_params = inspect.signature(nnUNetTrainer.__init__).parameters
+        # IMPORTANT: keep signature aligned with installed nnunetv2
+        super().__init__(
+            plans=plans,
+            configuration=configuration,
+            fold=fold,
+            dataset_json=dataset_json,
+            device=device,
+        )
 
-        init_kwargs = {
-            "plans": plans,
-            "configuration": configuration,
-            "fold": fold,
-            "dataset_json": dataset_json,
-        }
-        if "unpack_dataset" in base_init_params:
-            init_kwargs["unpack_dataset"] = unpack_dataset
-        if "device" in base_init_params:
-            init_kwargs["device"] = device
-
-        super().__init__(**init_kwargs)
-
-        # Reproducibility
         seed = int(os.environ.get("NNUNET_SEED", "42"))
         self._apply_seed(seed)
 
-        # Early stopping parameters
         self._es_patience: int = int(os.environ.get("ES_PATIENCE", "50"))
         self._es_min_delta: float = float(os.environ.get("ES_MIN_DELTA", "1e-4"))
         self._es_warmup: int = int(os.environ.get("ES_WARMUP", "50"))
 
-        # Optional epoch override from env
         _num_epochs_env = os.environ.get("NNUNET_NUM_EPOCHS")
         if _num_epochs_env is not None:
             self.num_epochs = int(_num_epochs_env)
 
-        # Internal state
         self._es_best_dice: float = float("-inf")
         self._es_wait: int = 0
         self._es_triggered: bool = False
@@ -72,7 +55,6 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         )
 
     def on_epoch_end(self) -> None:
-        """Delegate to super, then evaluate early stopping condition."""
         super().on_epoch_end()
 
         if self._es_triggered:
@@ -97,7 +79,6 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
                 f"EarlyStopping: no improvement {self._es_wait}/{self._es_patience} "
                 f"(best={self._es_best_dice:.4f}, current={current_dice:.4f})"
             )
-
             if self._es_wait >= self._es_patience:
                 self.print_to_log_file(
                     f"EarlyStopping: triggered at epoch {current_epoch}. "
@@ -109,18 +90,15 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
     @staticmethod
     def _apply_seed(seed: int) -> None:
         import random
-
         random.seed(seed)
         os.environ["PYTHONHASHSEED"] = str(seed)
         try:
             import numpy as np
-
             np.random.seed(seed)
         except ImportError:
             pass
         try:
             import torch
-
             torch.manual_seed(seed)
             torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
