@@ -65,6 +65,11 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         self._es_min_delta: float = float(os.environ.get("ES_MIN_DELTA", "1e-4"))
         self._es_warmup: int = int(os.environ.get("ES_WARMUP", "50"))
 
+        # Override num_epochs from env var (nnUNetv2_train has no --num_epochs flag)
+        _num_epochs_env = os.environ.get("NNUNET_NUM_EPOCHS")
+        if _num_epochs_env is not None:
+            self.num_epochs = int(_num_epochs_env)
+
         # Internal state
         self._es_best_dice: float = float("-inf")
         self._es_wait: int = 0

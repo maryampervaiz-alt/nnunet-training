@@ -144,6 +144,7 @@ class FoldTrainer:
             "ES_PATIENCE": str(self.es_patience),
             "ES_MIN_DELTA": str(self.es_min_delta),
             "ES_WARMUP": str(self.es_warmup),
+            **({"NNUNET_NUM_EPOCHS": str(self.num_epochs)} if self.num_epochs is not None else {}),
         }
         return env
 
@@ -157,8 +158,7 @@ class FoldTrainer:
             "-tr", self.trainer_class,
             "-p", self.plans_identifier,
         ]
-        if self.num_epochs is not None:
-            cmd += ["--num_epochs", str(self.num_epochs)]
+        # num_epochs passed via NNUNET_NUM_EPOCHS env var (nnUNetv2_train CLI has no --num_epochs)
         if self.continue_training:
             cmd.append("--c")
         cmd += self.extra_args
