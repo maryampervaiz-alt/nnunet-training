@@ -140,6 +140,8 @@ class FoldTrainer:
             **os.environ,
             **nnunet_env(),
             **seed_env_for_subprocess(self.seed),
+            # Disable Python output buffering so nnUNet logs appear in real time.
+            "PYTHONUNBUFFERED": "1",
             # Early stopping params read by nnUNetTrainerEarlyStopping
             "ES_PATIENCE": str(self.es_patience),
             "ES_MIN_DELTA": str(self.es_min_delta),

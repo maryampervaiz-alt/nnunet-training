@@ -136,16 +136,14 @@ def _validate_cv_consistency(splits: list[dict], log) -> None:
     """
     total_cases = sum(len(f['train']) + len(f['val']) for f in splits)
 
-    # Get expected size from environment or make a reasonable check
-    # If total matches a known subset size, warn whether inconsistent
-    if total_cases not in (50, 100, 200, 500):
+    if total_cases not in (20, 50, 100, 200, 500):
         log.warning(
-            f"ℹ️  Dataset has {total_cases} total cases across all folds. "
+            f"Dataset has {total_cases} total cases across all folds. "
             f"For 5-fold CV, this should be stable across all fold training. "
             f"If folds were trained on different dataset sizes, results may be incomparable."
         )
     else:
-        log.info(f"✓ Dataset: {total_cases} cases ({total_cases // 5} per fold average)")
+        log.info(f"Dataset: {total_cases} cases ({total_cases // 5} per fold average)")
 
 
 def _export_publication_outputs(

@@ -272,10 +272,10 @@ def _run_training_curves(args: argparse.Namespace, log) -> None:
         )
         log.success(f"All-folds training curve → {out_dir}/all_folds_training.png")
 
-    # Per-fold CSVs: fold_0_metrics.csv, fold_1_metrics.csv, …
-    fold_csvs = sorted(metrics_dir.glob("fold_*_metrics.csv"))
+    # Per-fold CSVs: fold_0_training.csv, fold_1_training.csv, …
+    fold_csvs = sorted(metrics_dir.glob("fold_*_training.csv"))
     for csv_path in fold_csvs:
-        fold_label = csv_path.stem.replace("_metrics", "")
+        fold_label = csv_path.stem.replace("_training", "")
         try:
             fold_int = int(fold_label.split("_")[-1])
         except ValueError:
