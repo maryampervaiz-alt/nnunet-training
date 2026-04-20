@@ -87,6 +87,11 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
                 self._es_triggered = True
                 self.num_epochs = current_epoch
 
+    def print_to_log_file(self, *args, **kwargs) -> None:
+        if args and isinstance(args[0], str) and "Yayy!" in args[0]:
+            args = (args[0].replace("Yayy! New best EMA pseudo Dice:", "New best EMA pseudo Dice:"),) + args[1:]
+        super().print_to_log_file(*args, **kwargs)
+
     @staticmethod
     def _apply_seed(seed: int) -> None:
         import random
