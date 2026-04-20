@@ -61,7 +61,7 @@ if [[ "$CV_MODE" == true ]]; then
     # shellcheck disable=SC2086
     python scripts/04_inference.py \
         --cv-mode \
-        --cv-output-root inference_outputs/cv \
+        --output inference_outputs/cv \
         $CONFIG_ARG \
         $DEVICE_ARG \
         $TTA_ARG \

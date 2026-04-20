@@ -89,7 +89,7 @@ python scripts/03_train.py \
 echo "━━━ Step 4/6  Fold-Wise Validation Inference ━━━━━━━━━━━━━━━━━━━━━━━━━"
 python scripts/04_inference.py \
     --cv-mode \
-    --cv-output-root inference_outputs/cv \
+    --output inference_outputs/cv \
     --log-dir "$LOG_DIR"
 
 # ── Step 5: Evaluation ────────────────────────────────────────────────────────

@@ -68,6 +68,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--plans", default=None, help="Plans identifier; auto-detected when omitted")
     p.add_argument("--step-size", type=float, default=0.5)
     p.add_argument("--no-gaussian", action="store_true", help="Disable Gaussian windowing")
+    p.add_argument("--disable-tta", action="store_true", help="Disable test-time augmentation")
+    p.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Inference device")
     p.add_argument("--save-probabilities", action="store_true")
     p.add_argument("--overwrite", action="store_true")
     p.add_argument("--log-dir", default="logs")
@@ -144,6 +146,8 @@ def _run_standard_inference(args: argparse.Namespace, config: str, log) -> int:
         plans_identifier=args.plans,
         step_size=args.step_size,
         use_gaussian=not args.no_gaussian,
+        disable_tta=args.disable_tta,
+        device=args.device,
         save_probabilities=args.save_probabilities,
         overwrite_existing=args.overwrite,
     )
@@ -206,6 +210,8 @@ def _run_cv_inference(args: argparse.Namespace, config: str, log) -> int:
                 plans_identifier=args.plans,
                 step_size=args.step_size,
                 use_gaussian=not args.no_gaussian,
+                disable_tta=args.disable_tta,
+                device=args.device,
                 save_probabilities=args.save_probabilities,
                 overwrite_existing=args.overwrite,
             )
