@@ -196,22 +196,15 @@ class NNUNetPredictor:
             "-tr", self.trainer_class,
             "-p", self.plans_identifier,
             "-f", *folds_tokens,
-            "--step_size", str(self.step_size),
-            # Device flag — two separate tokens (NOT one string)
-            "--device", self.device,
+            "-step_size", str(self.step_size),
+            "-device", self.device,
         ]
 
         if self.disable_tta:
             cmd.append("--disable_tta")
 
-        if not self.use_gaussian:
-            cmd.append("--disable_gaussian")
-
         if self.save_probabilities:
             cmd.append("--save_probabilities")
-
-        if self.overwrite_existing:
-            cmd.append("--overwrite_existing")
 
         return cmd
 
