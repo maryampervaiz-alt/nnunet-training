@@ -18,28 +18,32 @@ from loguru import logger
 
 _PUB_RC = {
     "font.family": "sans-serif",
-    "font.size": 10,
-    "axes.titlesize": 11,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "legend.fontsize": 9,
+    "font.sans-serif": ["DejaVu Sans", "Arial", "Helvetica"],
+    "font.size": 11,
+    "axes.titlesize": 12,
+    "axes.labelsize": 11,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 10,
     "figure.dpi": 150,
     "savefig.dpi": 300,
     "savefig.bbox": "tight",
     "axes.spines.top": False,
     "axes.spines.right": False,
     "axes.grid": True,
-    "grid.alpha": 0.3,
+    "grid.alpha": 0.25,
+    "grid.linewidth": 0.6,
 }
 
+# Okabe-Ito colorblind-safe palette (CVPR/MICCAI standard)
+# GT uses yellow — standard in medical imaging papers for GT overlay on grayscale MRI
 _COLORS = {
-    "gt": "#E74C3C",
-    "pred": "#3498DB",
-    "fp": "#F39C12",
-    "fn": "#9B59B6",
-    "tp": "#2ECC71",
-    "neutral": "#4C72B0",
+    "gt":      "#F0E442",  # yellow  — ground truth
+    "pred":    "#56B4E9",  # sky blue — prediction
+    "tp":      "#009E73",  # bluish green — true positive
+    "fp":      "#D55E00",  # vermillion — false positive
+    "fn":      "#CC79A7",  # reddish purple — false negative
+    "neutral": "#0072B2",  # blue — single-metric plots
 }
 
 
@@ -470,8 +474,8 @@ def plot_training_curve(
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5), dpi=dpi)
 
         for col, label, color in [
-            ("train_loss", "Train loss", "#E74C3C"),
-            ("val_loss", "Val loss", "#3498DB"),
+            ("train_loss", "Train loss", "#D55E00"),
+            ("val_loss",   "Val loss",   "#0072B2"),
         ]:
             if col in df.columns:
                 valid = df.dropna(subset=[col])
@@ -485,7 +489,7 @@ def plot_training_curve(
         dice_col = next((col for col in ["val_dice", "val_pseudo_dice"] if col in df.columns), None)
         if dice_col is not None:
             valid = df.dropna(subset=[dice_col])
-            ax2.plot(valid["epoch"], valid[dice_col], color="#2ECC71", label="Val Dice")
+            ax2.plot(valid["epoch"], valid[dice_col], color="#009E73", label="Val Dice")
             ax2.set_xlabel("Epoch")
             ax2.set_ylabel("Dice")
             ax2.set_title("Validation Dice")
