@@ -64,7 +64,12 @@ class nnUNetTrainerEarlyStopping(nnUNetTrainer):
         if current_epoch < self._es_warmup:
             return
 
-        dice_log = self.logger.my_fantastic_logging.get("mean_fg_dice", [])
+        # my_fantastic_logging lives on nnUNetLogger; MetaLogger wraps it.
+        # Use getattr so the trainer survives logger API changes across versions.
+        fantastic = getattr(self.logger, 'my_fantastic_logging', None)
+        if fantastic is None:
+            return
+        dice_log = fantastic.get("mean_fg_dice", [])
         if not dice_log:
             return
 
