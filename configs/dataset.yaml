@@ -12,6 +12,13 @@ dataset:
   tensorImageSize: "3D"
 
   # Modality mapping (keys must match _XXXX suffix used in filenames)
+  #
+  # Modality rationale: BraTS 2024 MEN-RT provides only post-Gd T1-weighted (T1c)
+  # scans for meningioma GTV segmentation. This is the standard clinical protocol
+  # for meningioma delineation, as contrast-enhancing tumour boundaries are most
+  # visible on T1c. No additional modalities (T2, FLAIR) are available in this
+  # dataset release. Single-modality input is therefore not an ablation choice
+  # but a dataset constraint. Reference: Morin et al., MICCAI 2024 BraTS challenge.
   channel_names:
     "0": "T1c"
 

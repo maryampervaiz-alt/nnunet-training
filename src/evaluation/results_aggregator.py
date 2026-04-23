@@ -9,6 +9,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from loguru import logger
+from scipy import stats as _scipy_stats
 
 _PUB_METRICS = [
     "dice",
@@ -318,6 +319,127 @@ class ResultsAggregator:
         with path.open("w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2)
         logger.info(f"Rankings JSON -> {path}")
+        return path
+
+    def statistical_significance(
+        self,
+        df_a: pd.DataFrame,
+        df_b: pd.DataFrame,
+        label_a: str = "A",
+        label_b: str = "B",
+        alpha: float = 0.05,
+    ) -> pd.DataFrame:
+        """Wilcoxon signed-rank test between two paired per-case result DataFrames.
+
+        Use this to compare: raw vs post-processed, baseline vs proposed, fold X vs fold Y.
+        Requires the same case IDs in both DataFrames (inner-joined on case_id).
+
+        Parameters
+        ----------
+        df_a, df_b:
+            Per-case metric DataFrames (one row per case) — typically from
+            ``SegmentationEvaluator.run()``.
+        label_a, label_b:
+            Human-readable names for the two conditions (used in log output).
+        alpha:
+            Significance level (default 0.05).
+
+        Returns
+        -------
+        pd.DataFrame
+            One row per metric with columns: metric, mean_a, mean_b, delta,
+            statistic, p_value, significant, better.
+        """
+        id_col = "case_id" if "case_id" in df_a.columns else None
+        if id_col is not None:
+            merged = df_a.merge(df_b, on=id_col, suffixes=("_a", "_b"))
+        else:
+            if len(df_a) != len(df_b):
+                raise ValueError(
+                    "DataFrames have different lengths and no 'case_id' column to join on."
+                )
+            merged = pd.concat(
+                [df_a.reset_index(drop=True), df_b.reset_index(drop=True)],
+                axis=1,
+                keys=["a", "b"],
+            )
+            merged.columns = [f"{c}_a" if lvl == "a" else f"{c}_b" for lvl, c in merged.columns]
+
+        available = [m for m in self.metrics if f"{m}_a" in merged.columns and f"{m}_b" in merged.columns]
+        rows = []
+        for metric in available:
+            vals_a = _clean_values(merged[f"{metric}_a"])
+            vals_b = _clean_values(merged[f"{metric}_b"])
+            n = min(len(vals_a), len(vals_b))
+            va, vb = vals_a[:n], vals_b[:n]
+            mean_a = float(np.mean(va))
+            mean_b = float(np.mean(vb))
+            delta = mean_b - mean_a
+
+            if n < 5 or np.allclose(va, vb):
+                stat, p = float("nan"), float("nan")
+            else:
+                try:
+                    result = _scipy_stats.wilcoxon(va, vb, alternative="two-sided")
+                    stat, p = float(result.statistic), float(result.pvalue)
+                except Exception:
+                    stat, p = float("nan"), float("nan")
+
+            sig = (not math.isnan(p)) and (p < alpha)
+            higher_better = metric in _HIGHER_IS_BETTER
+            better = (
+                label_b if (higher_better and delta > 0) or (not higher_better and delta < 0)
+                else label_a if delta != 0
+                else "tie"
+            )
+            rows.append({
+                "metric": _DISPLAY_NAMES.get(metric, metric),
+                f"mean_{label_a}": round(mean_a, 4),
+                f"mean_{label_b}": round(mean_b, 4),
+                "delta": round(delta, 4),
+                "wilcoxon_stat": round(stat, 2) if math.isfinite(stat) else float("nan"),
+                "p_value": round(p, 4) if math.isfinite(p) else float("nan"),
+                "significant": sig,
+                "better": better,
+                "n": n,
+            })
+
+        result_df = pd.DataFrame(rows)
+        if result_df.empty:
+            logger.warning("No common metrics found for statistical comparison.")
+            return result_df
+
+        sig_count = int(result_df["significant"].sum())
+        logger.info(
+            f"Wilcoxon test: {label_a} vs {label_b} | n={n} cases | "
+            f"α={alpha} | {sig_count}/{len(result_df)} metrics significant"
+        )
+        lines = [f"\nStatistical comparison: {label_a} vs {label_b}"]
+        lines.append(f"{'Metric':<28} {'Mean '+label_a:>10} {'Mean '+label_b:>10} {'Delta':>8} {'p-value':>8} {'Sig':>4} {'Better':>10}")
+        lines.append("-" * 82)
+        for _, row in result_df.iterrows():
+            p_str = f"{row['p_value']:.4f}" if math.isfinite(row["p_value"]) else "  N/A"
+            sig_str = "✓" if row["significant"] else " "
+            lines.append(
+                f"  {row['metric']:<26} {row[f'mean_{label_a}']:>10.4f} "
+                f"{row[f'mean_{label_b}']:>10.4f} {row['delta']:>+8.4f} "
+                f"{p_str:>8} {sig_str:>4} {row['better']:>10}"
+            )
+        logger.info("\n".join(lines))
+        return result_df
+
+    def export_stat_test_csv(
+        self,
+        df_a: pd.DataFrame,
+        df_b: pd.DataFrame,
+        label_a: str = "A",
+        label_b: str = "B",
+        tag: str = "stat_test",
+    ) -> Path:
+        result_df = self.statistical_significance(df_a, df_b, label_a, label_b)
+        path = self.results_dir / f"{tag}_wilcoxon.csv"
+        result_df.to_csv(path, index=False, float_format="%.6f")
+        logger.info(f"Wilcoxon results CSV → {path}")
         return path
 
     def print_summary(self, df: pd.DataFrame | None = None, tag: str = "Results") -> None:

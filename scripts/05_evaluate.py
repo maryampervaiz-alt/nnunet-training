@@ -112,6 +112,21 @@ def parse_args() -> argparse.Namespace:
         metavar="N",
         help="Bootstrap resamples for 95 %% CI (0 = skip, default: 2000).",
     )
+    p.add_argument(
+        "--stat-test",
+        action="store_true",
+        help=(
+            "Run Wilcoxon signed-rank test comparing raw vs post-processed predictions. "
+            "Requires results/fold_N_per_case.csv and results/fold_N_postproc_per_case.csv."
+        ),
+    )
+    p.add_argument(
+        "--stat-alpha",
+        type=float,
+        default=0.05,
+        metavar="ALPHA",
+        help="Significance level for Wilcoxon test (default: 0.05).",
+    )
 
     # ── Misc ──────────────────────────────────────────────────────────────────
     p.add_argument("--log-dir", default="logs")
@@ -335,6 +350,32 @@ def main() -> None:
         f"Precision={df['precision'].mean():.4f} | "
         f"Recall={df['recall'].mean():.4f}"
     )
+
+    # ── Optional: Wilcoxon test raw vs post-processed ─────────────────────────
+    if args.stat_test:
+        results_dir = Path(args.results_dir)
+        tag = "cv" if args.cv_mode else args.tag
+        raw_csv = results_dir / f"{tag}_per_case.csv"
+        postproc_csv = results_dir / f"{tag}_postproc_per_case.csv"
+
+        if not raw_csv.exists() or not postproc_csv.exists():
+            log.warning(
+                f"Wilcoxon test skipped — need both:\n"
+                f"  {raw_csv}\n  {postproc_csv}\n"
+                "Run post-processing (Cell 15b) before --stat-test."
+            )
+        else:
+            df_raw = pd.read_csv(raw_csv)
+            df_post = pd.read_csv(postproc_csv)
+            aggregator = ResultsAggregator(results_dir=results_dir)
+            aggregator.export_stat_test_csv(
+                df_a=df_raw,
+                df_b=df_post,
+                label_a="raw",
+                label_b="postproc",
+                tag=f"{tag}",
+            )
+            log.info(f"Wilcoxon CSV → {results_dir}/{tag}_wilcoxon.csv")
 
 
 if __name__ == "__main__":

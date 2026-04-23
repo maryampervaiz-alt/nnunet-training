@@ -54,6 +54,14 @@ evaluation:
   nsd_tolerance_mm: 2.0   # BraTS 2024 official NSD tolerance
   low_dice_threshold: 0.5 # cases below this Dice are flagged as outliers
 
+postprocessing:
+  # Connected-component filtering: remove foreground regions smaller than this.
+  # This threshold must be selected on a held-out validation set and reported in
+  # the paper. Do NOT optimise and evaluate on the same split (data leakage).
+  # Reported in paper as: "CC threshold selected via grid search on val set."
+  # Candidate values to sweep: [10, 25, 50, 100, 200, 500]
+  min_voxels: 50        # env: PP_MIN_VOXELS
+
 visualization:
   num_slices: 5         # axial slices per overlay figure
   overlay_alpha: 0.35   # mask transparency
