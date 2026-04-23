@@ -1,69 +1,71 @@
 # ─── Experiment Configuration ──────────────────────────────────────────────────
 #
-# Controls training, inference, and evaluation behaviour.
+# Every value here maps directly to an environment variable (see .env.example).
+# No values are hardcoded — all ${VAR} placeholders are resolved at runtime.
 #
 # IMPORTANT: nnU-Net auto-determines all model hyperparameters (learning rate,
 # batch size, patch size, network depth, augmentation pipeline) from the data.
 # Do NOT override these unless submitting an explicit ablation study.
-#
-# All ${VAR} placeholders are resolved from environment variables (.env file).
 
 experiment:
   name: ${EXPERIMENT_NAME}
-  seed: 42            # also set NNUNET_SEED in .env for subprocess propagation
+  seed: ${NNUNET_SEED}
+
+dataset:
+  max_train_cases: ${MAX_TRAIN_CASES}       # 20 = pilot, full integer = production
 
 training:
-  configuration: ${NNUNET_CONFIGURATION}  # 3d_fullres recommended for 3-D MRI
-  num_folds: ${NUM_FOLDS}                 # 5-fold CV (nnU-Net default splits)
-  trainer_class: "nnUNetTrainerEarlyStopping"
-  plans_identifier: "nnUNetPlans"
+  configuration: ${NNUNET_CONFIGURATION}    # 3d_fullres recommended for 3-D MRI
+  num_folds: ${NUM_FOLDS}                   # 5-fold CV (nnU-Net default splits)
+  trainer_class: ${NNUNET_TRAINER_CLASS}
+  plans_identifier: ${NNUNET_PLANS_IDENTIFIER}
+  num_epochs: ${NNUNET_NUM_EPOCHS}          # 10=pilot, 50=preliminary, 1000=full
+  resume_target_epochs: ${RESUME_TARGET_EPOCHS}
 
-  # Resume training from an existing checkpoint (--continue flag in 03_train.py)
-  continue_training: false
-
-  # ── Early stopping ──────────────────────────────────────────────────────────
-  # These values are read from environment variables so the trainer subprocess
-  # can access them without importing Python project code.
-  # Override via .env or --es-* CLI flags in 03_train.py.
-  es_patience: 50     # env: ES_PATIENCE  — epochs with no improvement before stop
-  es_min_delta: 0.0001  # env: ES_MIN_DELTA — minimum Dice gain to reset counter
-  es_warmup: 50       # env: ES_WARMUP   — epochs before early stopping is active
+  # ── Early stopping ────────────────────────────────────────────────────────────
+  # Read from env so the trainer subprocess can access them without importing
+  # Python project code. Values must also be set in .env.
+  # Note: if num_epochs <= es_warmup, early stopping never triggers —
+  # this is intentional for short pilot runs.
+  es_patience: ${ES_PATIENCE}
+  es_min_delta: ${ES_MIN_DELTA}
+  es_warmup: ${ES_WARMUP}
 
 inference:
-  # "all" → ensemble all trained folds (higher accuracy, slower)
-  # [0, 1, 2, 3, 4] → select specific folds
-  folds: "all"
-  step_size: 0.5        # sliding-window overlap; higher = more accurate, slower
-  use_gaussian: true    # Gaussian patch weighting (nnU-Net default: on)
-  disable_tta: false    # test-time augmentation; set true for faster inference
-  device: "cuda"        # "cuda" | "cpu"
-  save_probabilities: false   # save softmax maps (large files)
-  overwrite_existing: false
+  step_size: ${INFERENCE_STEP_SIZE}         # sliding-window overlap
+  disable_tta: ${INFERENCE_DISABLE_TTA}     # test-time augmentation
+  device: ${INFERENCE_DEVICE}               # cuda | cpu
+  folds: "all"                              # all = ensemble; or [0,1,2,3,4]
+  use_gaussian: true                        # Gaussian patch weighting (nnU-Net default)
+  save_probabilities: false
+
+postprocessing:
+  # Threshold candidates for connected-component filtering sweep.
+  # The best value is selected on the validation set and reported in the paper.
+  # Value chosen: must NOT be tuned on the test split (data leakage).
+  thresholds: ${PP_THRESHOLDS}              # e.g. "10,25,50,100,200,500"
 
 evaluation:
   # BraTS 2024 MEN-RT official metrics
   metrics:
-    - dice              # Dice Similarity Coefficient (DSC)
+    - dice              # Dice Similarity Coefficient (DSC / F1)
     - hd95              # 95th-percentile Hausdorff Distance (mm)
-    - nsd               # Normalised Surface Distance at tolerance below
+    - hd                # Maximum Hausdorff Distance (mm)
+    - nsd               # Normalised Surface Distance (BraTS 2024 official)
     - precision         # Positive predictive value
     - recall            # Sensitivity / true positive rate
     - specificity       # True negative rate
     - volume_similarity
     - abs_volume_error_ml
-  nsd_tolerance_mm: 2.0   # BraTS 2024 official NSD tolerance
-  low_dice_threshold: 0.5 # cases below this Dice are flagged as outliers
-
-postprocessing:
-  # Connected-component filtering: remove foreground regions smaller than this.
-  # This threshold must be selected on a held-out validation set and reported in
-  # the paper. Do NOT optimise and evaluate on the same split (data leakage).
-  # Reported in paper as: "CC threshold selected via grid search on val set."
-  # Candidate values to sweep: [10, 25, 50, 100, 200, 500]
-  min_voxels: 50        # env: PP_MIN_VOXELS
+  nsd_tolerance_mm: ${NSD_TOLERANCE_MM}     # BraTS 2024 official: 2.0 mm
+  low_dice_threshold: ${LOW_DICE_THRESHOLD} # below this -> flagged as outlier
+  bootstrap_n: ${BOOTSTRAP_N}              # resamples for 95% CI
 
 visualization:
   num_slices: 5         # axial slices per overlay figure
   overlay_alpha: 0.35   # mask transparency
-  dpi: 150              # screen figure DPI (savefig uses 300 dpi)
+  dpi: 150              # screen figure DPI (publication figures use 300 dpi)
   n_overlay_cases: 15   # total cases for overlay plots (best/median/worst split)
+
+output:
+  kaggle_output_dir: ${KAGGLE_OUTPUT_DIR}
