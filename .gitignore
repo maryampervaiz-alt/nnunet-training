@@ -42,6 +42,7 @@ mlruns/
 .ipynb_checkpoints/
 *.ipynb
 !nnunet_kaggle.ipynb
+!nnunet_colab.ipynb
 
 # OS
 .DS_Store
