@@ -58,6 +58,7 @@ pip install -e .
 │   ├── 04_inference.py       # Batch inference (ensemble or per-fold CV)
 │   ├── 05_evaluate.py        # Metric computation + LaTeX table export
 │   ├── 06_visualize.py       # Overlays, violin plots, training curves
+│   ├── 07_generate_sam_prompts.py # nnU-Net masks → SAM-Med3D prompts
 │   ├── run_pipeline.sh       # Full end-to-end pipeline
 │   ├── run_training.sh       # Steps 1–3 only
 │   ├── run_inference.sh      # Step 4 only
@@ -135,7 +136,35 @@ python scripts/05_evaluate.py --cv-mode --latex
 
 # Step 6 — Visualizations (overlays, violin plots, training curves)
 python scripts/06_visualize.py --all --cv-mode
+
+# Step 7 — Build SAM-Med3D prompts from nnU-Net coarse masks
+python scripts/07_generate_sam_prompts.py \
+  --mask-dir inference_outputs/ensemble \
+  --output-dir prompts/sammed3d
 ```
+
+### SAM-Med3D refinement handoff
+
+For prompt-based refinement (point + box guidance), generate prompt artifacts
+from nnU-Net coarse predictions:
+
+```bash
+bash scripts/run_prompt_generation.sh \
+  --mask-dir inference_outputs/ensemble \
+  --output-dir prompts/sammed3d
+```
+
+Outputs:
+- `prompts/sammed3d/cases/<case_id>.json` (per-case prompt payload)
+- `prompts/sammed3d/sam_prompt_manifest.json` (global manifest)
+- `prompts/sammed3d/sam_prompt_summary.csv` (case-level summary)
+
+Each case JSON includes:
+- Connected-component-aware 3D bounding boxes
+- Positive and negative prompt points
+- Geometry metadata (spacing/origin/direction)
+
+This keeps the refinement stage reproducible and avoids data leakage from GT.
 
 ### Training only
 
