@@ -180,7 +180,7 @@ def main() -> None:
     if args.np is not None:
         # nnU-Net ≥ 2.2: --np applies per configuration
         np_values = [str(args.np)] * (len(args.configurations) if args.configurations else 1)
-        cmd += ["--np"] + np_values
+        cmd += ["-np"] + np_values
 
     if args.no_pp:
         cmd.append("--no_pp")
